@@ -1,0 +1,10 @@
+              precision    recall  f1-score   support
+
+   not_recom       1.00      1.00      1.00       864
+  very_recom       1.00      0.89      0.94        66
+    priority       0.99      0.99      0.99       853
+  spec_prior       0.99      1.00      1.00       809
+
+    accuracy                           0.99      2592
+   macro avg       1.00      0.97      0.98      2592
+weighted avg       0.99      0.99      0.99      2592

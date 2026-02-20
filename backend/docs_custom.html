@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Nursery ML API</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',sans-serif;background:#0f172a;color:#e2e8f0;display:flex;min-height:100vh}
+
+/* SIDEBAR */
+.sidebar{width:240px;background:#1e293b;border-right:1px solid #334155;padding:24px 0;position:fixed;top:0;left:0;height:100vh;overflow-y:auto}
+.sidebar .logo{padding:0 20px 24px;border-bottom:1px solid #334155;margin-bottom:16px}
+.sidebar .logo h2{color:#38bdf8;font-size:15px}
+.sidebar .logo p{color:#64748b;font-size:11px;margin-top:3px}
+.sidebar a{display:flex;align-items:center;gap:8px;padding:9px 20px;color:#94a3b8;font-size:13px;cursor:pointer;text-decoration:none;transition:all .15s}
+.sidebar a:hover,.sidebar a.active{background:#0f172a;color:#e2e8f0;border-right:2px solid #38bdf8}
+.sidebar .section{padding:12px 20px 4px;font-size:10px;color:#475569;text-transform:uppercase;letter-spacing:1.5px}
+.m-GET{color:#38bdf8}.m-POST{color:#22c55e}.m-PUT{color:#f59e0b}
+
+/* MAIN */
+.main{margin-left:240px;flex:1;padding:32px}
+.page{display:none}.page.active{display:block}
+
+/* CARDS */
+.card{background:#1e293b;border:1px solid #334155;border-radius:12px;padding:24px;margin-bottom:20px}
+.card h2{font-size:18px;color:#f1f5f9;margin-bottom:6px}
+.card p{color:#64748b;font-size:13px;line-height:1.6}
+
+/* STATS */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
+.kpi{background:#1e293b;border:1px solid #334155;border-radius:10px;padding:20px;text-align:center}
+.kpi .n{font-size:2rem;font-weight:700;color:#38bdf8}
+.kpi .l{color:#64748b;font-size:12px;margin-top:4px}
+
+/* BADGE METHOD */
+.badge{display:inline-block;padding:3px 10px;border-radius:5px;font-size:11px;font-weight:700;font-family:monospace}
+.badge.GET{background:#0ea5e920;color:#38bdf8;border:1px solid #0ea5e940}
+.badge.POST{background:#22c55e20;color:#22c55e;border:1px solid #22c55e40}
+.badge.PUT{background:#f59e0b20;color:#f59e0b;border:1px solid #f59e0b40}
+.path-label{font-family:monospace;font-size:14px;color:#e2e8f0;margin-left:8px}
+.auth-badge{font-size:10px;background:#f59e0b20;color:#f59e0b;border:1px solid #f59e0b30;padding:2px 7px;border-radius:4px;margin-left:8px}
+.auth-badge.admin{background:#f8717120;color:#f87171;border-color:#f8717130}
+
+/* FORM */
+label{display:block;font-size:12px;color:#94a3b8;margin-bottom:5px;margin-top:14px}
+input,select,textarea{width:100%;background:#0f172a;border:1px solid #334155;border-radius:7px;padding:9px 12px;color:#e2e8f0;font-size:13px;font-family:'Segoe UI',sans-serif;outline:none;transition:border-color .2s}
+input:focus,select:focus,textarea:focus{border-color:#38bdf8}
+select option{background:#1e293b}
+textarea{resize:vertical;min-height:80px;font-family:monospace;font-size:12px}
+
+.btn{display:inline-flex;align-items:center;gap:7px;background:#38bdf8;color:#0f172a;border:none;border-radius:7px;padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer;margin-top:16px;transition:all .2s}
+.btn:hover{background:#0ea5e9}
+.btn.secondary{background:#334155;color:#e2e8f0}
+.btn.secondary:hover{background:#475569}
+.btn.danger{background:#ef444420;color:#f87171;border:1px solid #ef444440}
+
+/* RESPONSE */
+.response-box{margin-top:16px;background:#0a0f1a;border:1px solid #1e293b;border-radius:8px;overflow:hidden}
+.response-header{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:#111827;border-bottom:1px solid #1e293b}
+.response-header span{font-size:12px;color:#64748b}
+.status-ok{color:#22c55e;font-weight:600}
+.status-err{color:#f87171;font-weight:600}
+pre.response{padding:14px;font-size:12px;color:#a3e635;overflow-x:auto;max-height:300px;overflow-y:auto;white-space:pre-wrap}
+
+/* TOKEN */
+.token-stored{background:#052e16;border:1px solid #166534;border-radius:7px;padding:10px 14px;font-size:12px;color:#4ade80;font-family:monospace;margin-top:10px;word-break:break-all;display:none}
+.info-box{background:#1e3a5f;border:1px solid #1d4ed8;border-radius:7px;padding:12px 16px;font-size:13px;color:#93c5fd;margin-bottom:16px;line-height:1.6}
+.warn-box{background:#3a1e1e;border:1px solid #7f1d1d;border-radius:7px;padding:12px 16px;font-size:13px;color:#fca5a5;margin-bottom:16px}
+
+/* TABLE */
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:10px 14px;color:#64748b;font-size:11px;text-transform:uppercase;border-bottom:1px solid #334155}
+td{padding:10px 14px;border-bottom:1px solid #1e293b;color:#cbd5e1}
+tr:last-child td{border-bottom:none}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px}
+.dot.green{background:#22c55e}.dot.red{background:#ef4444}
+
+/* PREDICT RESULT */
+.result-card{border-radius:10px;padding:20px;margin-top:16px;text-align:center;display:none}
+.result-card.recommend,.result-card.very_recom{background:#052e1680;border:2px solid #22c55e}
+.result-card.priority,.result-card.spec_prior{background:#431a0380;border:2px solid #f59e0b}
+.result-card.not_recom{background:#3a1e1e80;border:2px solid #ef4444}
+.result-class{font-size:2rem;font-weight:700;margin-bottom:8px}
+.result-conf{font-size:14px;color:#94a3b8}
+.proba-bar{margin-top:16px}
+.proba-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;font-size:12px}
+.proba-row .cls{width:90px;color:#94a3b8;text-align:right}
+.proba-row .bar-wrap{flex:1;background:#1e293b;border-radius:4px;height:8px}
+.proba-row .bar-fill{height:8px;border-radius:4px;background:#38bdf8;transition:width .5s}
+.proba-row .val{width:50px;color:#e2e8f0}
+
+/* FILE UPLOAD */
+.dropzone{border:2px dashed #334155;border-radius:10px;padding:30px;text-align:center;cursor:pointer;transition:all .2s;margin-top:12px}
+.dropzone:hover,.dropzone.drag{border-color:#38bdf8;background:#0ea5e910}
+.dropzone p{color:#64748b;font-size:14px}
+.dropzone input{display:none}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="logo">
+    <h2>🍼 Nursery ML API</h2>
+    <p>v1.0.0 — Interactive Docs</p>
+  </div>
+
+  <div class="section">Authentification</div>
+  <a onclick="show('register')"><span class="m-POST">POST</span> &nbsp;/register</a>
+  <a onclick="show('login')"><span class="m-POST">POST</span> &nbsp;/login</a>
+  <a onclick="show('me')"><span class="m-GET">GET</span> &nbsp;/me</a>
+
+  <div class="section">Predictions ML</div>
+  <a onclick="show('predict')"><span class="m-POST">POST</span> &nbsp;/predict</a>
+  <a onclick="show('batch')"><span class="m-POST">POST</span> &nbsp;/predict-batch</a>
+
+  <div class="section">Monitoring</div>
+  <a onclick="show('health')"><span class="m-GET">GET</span> &nbsp;/health</a>
+  <a onclick="show('modelinfo')"><span class="m-GET">GET</span> &nbsp;/model-info</a>
+
+  <div class="section">Statistiques</div>
+  <a onclick="show('modstats')"><span class="m-GET">GET</span> &nbsp;/moderateur/stats</a>
+  <a onclick="show('adminstats')"><span class="m-GET">GET</span> &nbsp;/admin/stats</a>
+  <a onclick="show('toggle')"><span class="m-PUT">PUT</span> &nbsp;/toggle moderateur</a>
+</nav>
+
+<!-- MAIN -->
+<main class="main">
+
+<!-- ═══ REGISTER ═══ -->
+<div class="page active" id="page-register">
+  <div class="card">
+    <div style="margin-bottom:14px"><span class="badge POST">POST</span><span class="path-label">/api/auth/register</span></div>
+    <h2>Inscription Modérateur</h2>
+    <p>Crée un compte modérateur avec une crèche associée. Aucun token requis.</p>
+    <label>Email</label><input id="reg-email" type="email" placeholder="moderateur@creche.com">
+    <label>Mot de passe</label><input id="reg-pass" type="password" placeholder="motdepasse123">
+    <label>Nom complet</label><input id="reg-nom" placeholder="Marie Dupont">
+    <label>Nom de la crèche</label><input id="reg-creche" placeholder="Les Petits Poussins">
+    <label>Capacité maximale</label><input id="reg-cap" type="number" placeholder="30">
+    <button class="btn" onclick="doRegister()">▶ Envoyer la requête</button>
+    <div class="response-box" id="reg-res" style="display:none">
+      <div class="response-header"><span>Réponse</span><span id="reg-status"></span></div>
+      <pre class="response" id="reg-body"></pre>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ LOGIN ═══ -->
+<div class="page" id="page-login">
+  <div class="card">
+    <div style="margin-bottom:14px"><span class="badge POST">POST</span><span class="path-label">/api/auth/login</span></div>
+    <h2>Connexion</h2>
+    <p>Connecte un utilisateur et retourne un token JWT. Le token est automatiquement sauvegardé pour les autres requêtes.</p>
+    <div class="info-box">💡 Compte admin : <strong>admin@nursery.com</strong> / <strong>Admin1234!</strong></div>
+    <label>Email</label><input id="login-email" placeholder="admin@nursery.com">
+    <label>Mot de passe</label><input id="login-pass" type="password" placeholder="Admin1234!">
+    <button class="btn" onclick="doLogin()">▶ Se connecter</button>
+    <div class="token-stored" id="token-display"></div>
+    <div class="response-box" id="login-res" style="display:none">
+      <div class="response-header"><span>Réponse</span><span id="login-status"></span></div>
+      <pre class="response" id="login-body"></pre>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ ME ═══ -->
+<div class="page" id="page-me">
+  <div class="card">
+    <div style="margin-bottom:14px"><span class="badge GET">GET</span><span class="path-label">/api/auth/me</span><span class="auth-badge">🔒 token requis</span></div>
+    <h2>Mon Profil</h2>
+    <p>Retourne les informations de l'utilisateur authentifié.</p>
+    <button class="btn" onclick="doGet('/api/auth/me','me-res','me-status','me-body')">▶ Envoyer la requête</button>
+    <div class="response-box" id="me-res" style="display:none">
+      <div class="response-header"><span>Réponse</span><span id="me-status"></span></div>
+      <pre class="response" id="me-body"></pre>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PREDICT ═══ -->
+<div class="page" id="page-predict">
+  <div class="card">
+    <div style="margin-bottom:14px"><span class="badge POST">POST</span><span class="path-label">/api/predict</span><span class="auth-badge">🔒 modérateur</span></div>
+    <h2>Prédiction individuelle</h2>
+    <p>Sélectionne les caractéristiques d'une demande et obtiens la décision du modèle XGBoost.</p>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      <div>
+        <label>👨‍👩‍👧 Situation des parents</label>
+        <select id="p-parents">
+          <option value="usual">Situation normale</option>
+          <option value="pretentious">Situation prétentieuse</option>
+          <option value="great_pret">Très prétentieux</option>
+        </select>
+
+        <label>🏫 Qualité de la garderie actuelle</label>
+        <select id="p-nurs">
+          <option value="proper">Bonne garderie</option>
+          <option value="less_proper">Garderie acceptable</option>
+          <option value="improper">Garderie inadaptée</option>
+          <option value="critical">Garderie critique</option>
+          <option value="very_crit">Garderie très critique</option>
+        </select>
+
+        <label>👪 Structure familiale</label>
+        <select id="p-form">
+          <option value="complete">Famille complète</option>
+          <option value="completed">Famille recomposée</option>
+          <option value="incomplete">Famille incomplète</option>
+          <option value="foster">Famille d'accueil</option>
+        </select>
+
+        <label>👶 Nombre d'enfants</label>
+        <select id="p-children">
+          <option value="1">1 enfant</option>
+          <option value="2">2 enfants</option>
+          <option value="3">3 enfants</option>
+          <option value="more">Plus de 3 enfants</option>
+        </select>
+      </div>
+      <div>
+        <label>🏠 Conditions de logement</label>
+        <select id="p-housing">
+          <option value="convenient">Logement convenable</option>
+          <option value="less_conv">Logement peu convenable</option>
+          <option value="critical">Logement critique</option>
+        </select>
+
+        <label>💰 Situation financière</label>
+        <select id="p-finance">
+          <option value="convenient">Finances stables</option>
+          <option value="inconv">Difficultés financières</option>
+        </select>
+
+        <label>🌍 Conditions sociales</label>
+        <select id="p-social">
+          <option value="nonprob">Pas de problème social</option>
+          <option value="slightly_prob">Légèrement problématique</option>
+          <option value="problematic">Situation problématique</option>
+        </select>
+
+        <label>❤️ État de santé de l'enfant</label>
+        <select id="p-health">
+          <option value="recommended">Santé recommandée</option>
+          <option value="priority">Priorité médicale</option>
+          <option value="not_recom">Non recommandé médicalement</option>
+        </select>
+      </div>
+    </div>
+
+    <button class="btn" onclick="doPredict()">▶ Prédire</button>
+
+    <div class="result-card" id="predict-result">
+      <div class="result-class" id="res-class"></div>
+      <div class="result-conf" id="res-conf"></div>
+      <div class="proba-bar" id="proba-bars"></div>
+    </div>
+
+    <div class="response-box" id="pred-res" style="display:none">
+      <div class="response-header"><span>Réponse JSON brute</span><span id="pred-status"></span></div>
+      <pre class="response" id="pred-body"></pre>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ BATCH ═══ -->
+<div class="page" id="page-batch">
+  <div class="card">
+    <div style="margin-bottom:14px"><span class="badge POST">POST</span><span class="path-label">/api/predict-batch</span><span class="auth-badge">🔒 modérateur</span></div>
+    <h2>Prédiction par lot (CSV)</h2>
+    <p>Upload un fichier CSV avec plusieurs demandes. Le fichier résultat sera téléchargé automatiquement.</p>
+    <div class="info-box">Format attendu : colonnes <strong>parents, has_nurs, form, children, housing, finance, social, health</strong></div>
+    <div class="dropzone" id="dropzone" onclick="document.getElementById('csv-input').click()" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="dropFile(event)">
+      <input type="file" id="csv-input" accept=".csv" onchange="fileSelected(this)">
+      <p id="drop-text">📁 Glisse un fichier CSV ici ou clique pour sélectionner</p>
+    </div>
+    <button class="btn" onclick="doBatch()" style="margin-top:12px">▶ Lancer les prédictions</button>
+    <button class="btn secondary" onclick="downloadSample()" style="margin-top:12px;margin-left:8px">⬇ Télécharger un CSV exemple</button>
+    <div class="response-box" id="batch-res" style="display:none">
+      <div class="response-header"><span>Réponse</span><span id="batch-status"></span></div>
+      <pre class="response" id="batch-body"></pre>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ HEALTH ═══ -->
+<div class="page" id="page-health">
+  <div class="card">
+    <div style="margin-bottom:14px"><span class="badge GET">GET</span><span class="path-label">/api/health</span></div>
+    <h2>État du service</h2>
+    <p>Vérifie que l'API est en ligne. Aucun token requis.</p>
+    <button class="btn" onclick="doGet('/api/health','health-res','health-status','health-body')">▶ Vérifier</button>
+    <div class="response-box" id="health-res" style="display:none">
+      <div class="response-header"><span>Réponse</span><span id="health-status"></span></div>
+      <pre class="response" id="health-body"></pre>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODEL INFO ═══ -->
+<div class="page" id="page-modelinfo">
+  <div class="card">
+    <div style="margin-bottom:14px"><span class="badge GET">GET</span><span class="path-label">/api/model-info</span></div>
+    <h2>Informations du modèle ML</h2>
+    <p>Retourne les détails du modèle en production : nom, métriques, date d'entraînement.</p>
+    <button class="btn" onclick="doGet('/api/model-info','mi-res','mi-status','mi-body')">▶ Obtenir les infos</button>
+    <div class="response-box" id="mi-res" style="display:none">
+      <div class="response-header"><span>Réponse</span><span id="mi-status"></span></div>
+      <pre class="response" id="mi-body"></pre>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MOD STATS ═══ -->
+<div class="page" id="page-modstats">
+  <div class="card">
+    <div style="margin-bottom:14px"><span class="badge GET">GET</span><span class="path-label">/api/moderateur/stats</span><span class="auth-badge">🔒 modérateur</span></div>
+    <h2>Statistiques de ma crèche</h2>
+    <p>Retourne le nombre de prédictions effectuées et leur distribution pour la crèche du modérateur connecté.</p>
+    <button class="btn" onclick="doGet('/api/moderateur/stats','ms-res','ms-status','ms-body')">▶ Voir mes stats</button>
+    <div class="response-box" id="ms-res" style="display:none">
+      <div class="response-header"><span>Réponse</span><span id="ms-status"></span></div>
+      <pre class="response" id="ms-body"></pre>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ ADMIN STATS ═══ -->
+<div class="page" id="page-adminstats">
+  <div class="card">
+    <div style="margin-bottom:14px"><span class="badge GET">GET</span><span class="path-label">/api/admin/stats</span><span class="auth-badge admin">🔒 admin</span></div>
+    <h2>Statistiques globales</h2>
+    <p>Vue complète : toutes les crèches, tous les modérateurs, toutes les prédictions. Réservé à l'admin.</p>
+    <button class="btn" onclick="doGet('/api/admin/stats','as-res','as-status','as-body')">▶ Voir les stats globales</button>
+    <div class="response-box" id="as-res" style="display:none">
+      <div class="response-header"><span>Réponse</span><span id="as-status"></span></div>
+      <pre class="response" id="as-body"></pre>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TOGGLE ═══ -->
+<div class="page" id="page-toggle">
+  <div class="card">
+    <div style="margin-bottom:14px"><span class="badge PUT">PUT</span><span class="path-label">/api/admin/moderateurs/{id}/toggle</span><span class="auth-badge admin">🔒 admin</span></div>
+    <h2>Activer / Désactiver un modérateur</h2>
+    <p>Change le statut actif/inactif d'un compte modérateur. Obtiens l'ID depuis les stats admin.</p>
+    <label>ID du modérateur</label>
+    <input id="toggle-id" type="number" placeholder="2">
+    <button class="btn danger" onclick="doToggle()">▶ Basculer le statut</button>
+    <div class="response-box" id="tog-res" style="display:none">
+      <div class="response-header"><span>Réponse</span><span id="tog-status"></span></div>
+      <pre class="response" id="tog-body"></pre>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<script>
+const BASE = 'http://127.0.0.1:8000';
+let TOKEN = localStorage.getItem('nursery_token') || '';
+
+if(TOKEN) {
+  document.getElementById('token-display').style.display='block';
+  document.getElementById('token-display').textContent = '✅ Token stocké : ' + TOKEN.substring(0,40) + '...';
+}
+
+function show(name) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.sidebar a').forEach(a=>a.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  event.currentTarget.classList.add('active');
+}
+
+function showRes(resId, statusId, bodyId, status, data) {
+  const box = document.getElementById(resId);
+  box.style.display='block';
+  const st = document.getElementById(statusId);
+  st.textContent = status;
+  st.className = status < 300 ? 'status-ok' : 'status-err';
+  document.getElementById(bodyId).textContent = JSON.stringify(data, null, 2);
+}
+
+function headers() {
+  const h = {'Content-Type':'application/json'};
+  if(TOKEN) h['Authorization'] = 'Bearer ' + TOKEN;
+  return h;
+}
+
+async function doRegister() {
+  const r = await fetch(BASE+'/api/auth/register', {
+    method:'POST', headers:headers(),
+    body: JSON.stringify({
+      email: document.getElementById('reg-email').value,
+      password: document.getElementById('reg-pass').value,
+      nom: document.getElementById('reg-nom').value,
+      nom_creche: document.getElementById('reg-creche').value,
+      capacite: parseInt(document.getElementById('reg-cap').value)
+    })
+  });
+  showRes('reg-res','reg-status','reg-body', r.status, await r.json());
+}
+
+async function doLogin() {
+  const r = await fetch(BASE+'/api/auth/login', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      email: document.getElementById('login-email').value,
+      password: document.getElementById('login-pass').value
+    })
+  });
+  const data = await r.json();
+  showRes('login-res','login-status','login-body', r.status, data);
+  if(data.access_token) {
+    TOKEN = data.access_token;
+    localStorage.setItem('nursery_token', TOKEN);
+    const d = document.getElementById('token-display');
+    d.style.display='block';
+    d.textContent = '✅ Token stocké : ' + TOKEN.substring(0,40) + '...';
+  }
+}
+
+async function doGet(url, resId, statusId, bodyId) {
+  const r = await fetch(BASE+url, {headers: headers()});
+  showRes(resId, statusId, bodyId, r.status, await r.json());
+}
+
+async function doPredict() {
+  const body = {
+    parents:  document.getElementById('p-parents').value,
+    has_nurs: document.getElementById('p-nurs').value,
+    form:     document.getElementById('p-form').value,
+    children: document.getElementById('p-children').value,
+    housing:  document.getElementById('p-housing').value,
+    finance:  document.getElementById('p-finance').value,
+    social:   document.getElementById('p-social').value,
+    health:   document.getElementById('p-health').value
+  };
+  const r = await fetch(BASE+'/api/predict', {method:'POST', headers:headers(), body:JSON.stringify(body)});
+  const data = await r.json();
+  showRes('pred-res','pred-status','pred-body', r.status, data);
+
+  if(data.prediction) {
+    const rc = document.getElementById('predict-result');
+    rc.className = 'result-card ' + data.prediction;
+    rc.style.display = 'block';
+
+    const labels = {'not_recom':'❌ Non recommandé','recommend':'✅ Recommandé','very_recom':'⭐ Très recommandé','priority':'🟠 Prioritaire','spec_prior':'🔵 Priorité spéciale'};
+    document.getElementById('res-class').textContent = labels[data.prediction] || data.prediction;
+    document.getElementById('res-conf').textContent = 'Confiance : ' + (data.confidence*100).toFixed(1) + '%';
+
+    const colors = {not_recom:'#ef4444',recommend:'#22c55e',very_recom:'#4ade80',priority:'#f59e0b',spec_prior:'#38bdf8'};
+    let bars = '';
+    for(const [cls, prob] of Object.entries(data.probabilities)) {
+      bars += `<div class="proba-row">
+        <div class="cls">${cls}</div>
+        <div class="bar-wrap"><div class="bar-fill" style="width:${(prob*100).toFixed(1)}%;background:${colors[cls]||'#38bdf8'}"></div></div>
+        <div class="val">${(prob*100).toFixed(1)}%</div>
+      </div>`;
+    }
+    document.getElementById('proba-bars').innerHTML = bars;
+  }
+}
+
+let selectedFile = null;
+function fileSelected(input) {
+  selectedFile = input.files[0];
+  document.getElementById('drop-text').textContent = '✅ ' + selectedFile.name + ' sélectionné';
+}
+function dropFile(e) {
+  e.preventDefault();
+  document.getElementById('dropzone').classList.remove('drag');
+  selectedFile = e.dataTransfer.files[0];
+  document.getElementById('drop-text').textContent = '✅ ' + selectedFile.name + ' sélectionné';
+}
+async function doBatch() {
+  if(!selectedFile) { alert('Sélectionne un fichier CSV'); return; }
+  const form = new FormData();
+  form.append('file', selectedFile);
+  const r = await fetch(BASE+'/api/predict-batch', {
+    method:'POST',
+    headers: TOKEN ? {'Authorization':'Bearer '+TOKEN} : {},
+    body: form
+  });
+  if(r.ok) {
+    const blob = await r.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href=url; a.download='predictions.csv'; a.click();
+    document.getElementById('batch-res').style.display='block';
+    document.getElementById('batch-status').textContent='200';
+    document.getElementById('batch-status').className='status-ok';
+    document.getElementById('batch-body').textContent='✅ Fichier téléchargé : predictions.csv';
+  } else {
+    const data = await r.json();
+    showRes('batch-res','batch-status','batch-body', r.status, data);
+  }
+}
+
+function downloadSample() {
+  const csv = `parents,has_nurs,form,children,housing,finance,social,health
+usual,proper,complete,1,convenient,convenient,nonprob,recommended
+pretentious,less_proper,incomplete,2,less_conv,inconv,slightly_prob,priority
+great_pret,critical,foster,3,critical,inconv,problematic,not_recom
+usual,very_crit,completed,more,convenient,convenient,nonprob,recommended`;
+  const blob = new Blob([csv], {type:'text/csv'});
+  const a = document.createElement('a');
+  a.href=URL.createObjectURL(blob); a.download='sample.csv'; a.click();
+}
+
+async function doToggle() {
+  const id = document.getElementById('toggle-id').value;
+  const r = await fetch(BASE+'/api/admin/moderateurs/'+id+'/toggle', {method:'PUT', headers:headers()});
+  showRes('tog-res','tog-status','tog-body', r.status, await r.json());
+}
+</script>
+</body>
+</html>

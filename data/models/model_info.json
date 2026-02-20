@@ -1,0 +1,31 @@
+{
+  "model_name": "XGBoost",
+  "trained_at": "2026-02-20 09:14:48",
+  "metrics": {
+    "accuracy": 1.0,
+    "f1_weighted": 1.0,
+    "f1_macro": 1.0,
+    "precision_weighted": 1.0,
+    "recall_weighted": 1.0
+  },
+  "class_order": [
+    "not_recom",
+    "recommend",
+    "very_recom",
+    "priority",
+    "spec_prior"
+  ],
+  "features": [
+    "parents",
+    "has_nurs",
+    "form",
+    "children",
+    "housing",
+    "finance",
+    "social",
+    "health"
+  ],
+  "rf_run_id": "432490717d1147c1a08a9688f03d04eb",
+  "xgb_run_id": "bb2103bf80d84986b2a832ac03fb8ebc",
+  "best_run_id": "bb2103bf80d84986b2a832ac03fb8ebc"
+}
