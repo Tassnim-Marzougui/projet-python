@@ -54,7 +54,7 @@ async def lifespan(app: FastAPI):
         print("Compte admin cree : admin@nursery.com / Admin1234!")
     db.close()
     yield
-    print("Arret de l'API")
+    #print("Arret de l'API")
 
 app = FastAPI(
     title="Nursery ML API",
@@ -278,7 +278,7 @@ def toggle_moderateur(
 # ══════════════════════════════════════════════════
 #  ENDPOINTS IA (Proxy Claude)
 # ══════════════════════════════════════════════════
-ANTHROPIC_API_KEY = "ta_cle_api_ici"  # ← mets ta clé ici
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "ta_cle_api_ici")  # ← utilise une variable d'environnement
 
 @app.post("/api/ai/explain")
 async def ai_explain(
@@ -323,4 +323,4 @@ async def ai_chat(
             },
             timeout=30.0
         )
-    return response.json()    
+    return response.json()
