@@ -1,0 +1,90 @@
+version: '3.9'
+
+# ══════════════════════════════════════════════════
+#  Nursery ML Project — Docker Compose
+#  Services : backend | frontend | mlflow
+# ══════════════════════════════════════════════════
+
+services:
+
+  # ── MLflow Tracking Server ──────────────────────
+  mlflow:
+    image: python:3.11-slim
+    container_name: nursery_mlflow
+    working_dir: /mlflow
+    command: >
+      bash -c "pip install --quiet mlflow==2.13.0 &&
+               mlflow server
+               --host 0.0.0.0
+               --port 5000
+               --backend-store-uri sqlite:///mlflow.db
+               --default-artifact-root /mlflow/artifacts"
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./mlartifacts:/mlflow/artifacts
+      - mlflow_db:/mlflow
+    networks:
+      - nursery_network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # ── Backend FastAPI ─────────────────────────────
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: nursery_backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+      - ./mlartifacts:/app/mlartifacts
+      - ./backend:/app/backend
+    environment:
+      - SECRET_KEY=${SECRET_KEY:-nursery_secret_key_2024_change_in_production}
+      - DATABASE_URL=sqlite:///./data/nursery.db
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - PYTHONPATH=/app
+    depends_on:
+      mlflow:
+        condition: service_healthy
+    networks:
+      - nursery_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8000/api/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ── Frontend React (Nginx) ──────────────────────
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: nursery_frontend
+    ports:
+      - "80:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - nursery_network
+    restart: unless-stopped
+
+# ── Volumes persistants ─────────────────────────
+volumes:
+  mlflow_db:
+    driver: local
+
+# ── Réseau interne ──────────────────────────────
+networks:
+  nursery_network:
+    driver: bridge
